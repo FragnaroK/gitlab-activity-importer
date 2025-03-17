@@ -18,19 +18,19 @@ func main() {
 
 	gitlabUser, err := services.GetGitlabUser()
 
-
 	log.Printf("Fetched user: %v", gitlabUser)
 	if err != nil {
 		log.Fatalf("Error during reading GitLab User data: %v", err)
 	}
 
 	gitLabUserId := gitlabUser.ID
-	
+
 	log.Printf("Fetched user ID: %v", gitLabUserId)
 	var projectIds []int
 	projectIds, err = services.GetUsersProjectsIds(gitLabUserId)
 
 	log.Printf("Fetched project IDs: %v", projectIds)
+
 	if err != nil {
 		log.Fatalf("Error during getting users projects: %v", err)
 	}
@@ -56,7 +56,7 @@ func main() {
 		log.Printf("Imported %v commits.\n", totalCommits)
 
 	}()
-	
+
 	log.Println("Fetching all commits...")
 
 	services.FetchAllCommits(projectIds, os.Getenv("COMMITER_NAME"), commitChannel)

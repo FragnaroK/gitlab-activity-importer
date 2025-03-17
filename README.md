@@ -1,4 +1,4 @@
-This repo is a fork of [furmanp/gitlab-activity-importer](https://github.com/furmanp/gitlab-activity-importer)
+This repo is a detached fork of [furmanp/gitlab-activity-importer](https://github.com/furmanp/gitlab-activity-importer)
 
 I have made some changes to the original code to make it work with my setup. I have also added a few features to make it more useful for me.
 
