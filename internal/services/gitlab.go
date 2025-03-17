@@ -92,11 +92,14 @@ func GetProjectCommits(projectId int, userName string) ([]internal.Commit, error
 	url := os.Getenv("BASE_URL")
 	token := os.Getenv("GITLAB_TOKEN")
 
-	var allCommits []internal.Commit
-	client := &http.Client{}
-	page := 1
+    var allCommits []internal.Commit
+    client := &http.Client{}
+    page := 1
+    maxPages := 50 // Set a reasonable limit
+    
+    seenCommits := make(map[string]bool) // Track commits we've already seen
 
-	for {
+	for page <= maxPages {
 		req, err := http.NewRequest("GET", fmt.Sprintf("%v/api/v4/projects/%v/repository/commits?author=%v&per_page=100&page=%d", url, projectId, userName, page), nil)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching the commits: %v", err)
@@ -119,20 +122,36 @@ func GetProjectCommits(projectId int, userName string) ([]internal.Commit, error
 		}
 
 		var commits []internal.Commit
-		err = json.Unmarshal(body, &commits)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing JSON: %v", err)
-		}
-
-		if len(commits) == 0 {
-			break
-		}
-
-		allCommits = append(allCommits, commits...)
-
-		log.Printf("Fetched %v commits from project no.:%v \n", len(commits), projectId)
-		page++
+        err = json.Unmarshal(body, &commits)
+        if err != nil {
+            return nil, fmt.Errorf("error parsing JSON: %v", err)
+        }
+        
+        if len(commits) == 0 {
+            break // No more commits
+        }
+        
+        // Check for duplicate pages
+        newCommitsFound := false
+        for _, commit := range commits {
+            if !seenCommits[commit.ID] {
+                seenCommits[commit.ID] = true
+                allCommits = append(allCommits, commit)
+                newCommitsFound = true
+            }
+        }
+        
+        if !newCommitsFound {
+            log.Printf("No new commits found on page %d for project %d, stopping pagination", page, projectId)
+            break // Exit if we're just getting duplicates
+        }
+        
+        page++
 	}
+
+	if page > maxPages {
+        log.Printf("Warning: Reached maximum page limit (%d) for project %d", maxPages, projectId)
+    }
 
 	if len(allCommits) == 0 {
 		return nil, fmt.Errorf("found no commits in project no.:%v", projectId)
@@ -151,7 +170,6 @@ func FetchAllCommits(projectIds []int, commiterName string, commitChannel chan [
 		log.Printf("Fetching commits for project %d", projectId)
 		go func(projId int) {
 			defer wg.Done()
-			log.Printf("Fetching commits for project %d", projId)
 
 			commits, err := GetProjectCommits(projId, commiterName)
 			if err != nil {
