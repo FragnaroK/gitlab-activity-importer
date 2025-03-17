@@ -138,7 +138,7 @@ func GetProjectCommits(projectId int, userName string) ([]internal.Commit, error
 
 	return allCommits, nil
 }
- 
+
 func FetchAllCommits(projectIds []int, commiterName string, commitChannel chan []internal.Commit) {
 	var wg sync.WaitGroup
 
