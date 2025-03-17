@@ -38,6 +38,7 @@ func cloneRemoteRepo() (*git.Repository, error) {
 	homeDir := internal.GetHomeDirectory() + "/commits-importer/"
 	repoURL := os.Getenv("ORIGIN_REPO_URL")
 
+	log.Println("Cloning repository from:", repoURL)
 	repo, err := git.PlainClone(homeDir, false, &git.CloneOptions{
 		URL: repoURL,
 		Auth: &http.BasicAuth{
@@ -68,6 +69,7 @@ func cloneRemoteRepo() (*git.Repository, error) {
 		return nil, fmt.Errorf("error cloning repository: %w", err)
 	}
 
+	log.Println("Repository cloned successfully.")
 	return repo, nil
 }
 
@@ -134,31 +136,31 @@ func CreateLocalCommit(repo *git.Repository, commits []internal.Commit) int {
 func getAllExistingCommitSHAs(repo *git.Repository) (map[string]bool, error) {
 	existingCommits := make(map[string]bool)
 	ref, err := repo.Reference("HEAD", true)
-	if err != nil {
-		if err == plumbing.ErrReferenceNotFound {
-			return existingCommits, nil
-		}
+	if (err != nil) && (err != plumbing.ErrReferenceNotFound) {
 		return nil, fmt.Errorf("failed to get HEAD reference: %v", err)
 	}
 
-	iter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit log: %v", err)
-	}
-	defer iter.Close()
+	if ref != nil {
+		iter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get commit log: %v", err)
+		}
+		defer iter.Close()
 
-	err = iter.ForEach(func(c *object.Commit) error {
-		existingCommits[c.Message] = true
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to iterate commits: %v", err)
+		err = iter.ForEach(func(c *object.Commit) error {
+			existingCommits[c.Message] = true
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to iterate commits: %v", err)
+		}
 	}
 
 	return existingCommits, nil
 }
 
 func PushLocalCommits(repo *git.Repository) {
+	log.Println("Pushing local commits to remote repository...")
 	err := repo.Push(&git.PushOptions{
 		Auth: &http.BasicAuth{
 			Username: os.Getenv("COMMITER_NAME"),
@@ -173,5 +175,7 @@ func PushLocalCommits(repo *git.Repository) {
 		} else {
 			log.Fatalf("Error pushing to Github: %v", err)
 		}
+	} else {
+		log.Println("Push completed successfully.")
 	}
 }

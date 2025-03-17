@@ -11,6 +11,8 @@ import (
 
 func main() {
 	startNow := time.Now()
+	log.Println("Starting the import process...")
+
 	err := internal.CheckEnvVariables()
 	if err != nil {
 		log.Fatalf("Error during loading environmental variables: %v", err)
@@ -22,8 +24,9 @@ func main() {
 		log.Fatalf("Error during reading GitLab User data: %v", err)
 	}
 
-	gitLabUserId := gitlabUser.ID
+	gitLabUserId := gitlabUser
 
+	log.Println("Fetching user project IDs...")
 	var projectIds []int
 	projectIds, err = services.GetUsersProjectsIds(gitLabUserId)
 
@@ -37,8 +40,10 @@ func main() {
 
 	log.Printf("Found contributions in %v projects \n", len(projectIds))
 
+	log.Println("Opening or initializing repository...")
 	repo := services.OpenOrInitClone()
 
+	log.Println("Creating commit channel...")
 	commitChannel := make(chan []internal.Commit, len(projectIds))
 
 	go func() {
@@ -48,11 +53,13 @@ func main() {
 			totalCommits += localCommits
 		}
 		log.Printf("Imported %v commits.\n", totalCommits)
-
 	}()
 
+	log.Println("Fetching all commits...")
 	services.FetchAllCommits(projectIds, os.Getenv("COMMITER_NAME"), commitChannel)
 
+	log.Println("Pushing local commits...")
 	services.PushLocalCommits(repo)
+
 	log.Printf("Operation took: %v in total.", time.Since(startNow))
 }
