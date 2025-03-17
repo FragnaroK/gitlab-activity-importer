@@ -31,6 +31,8 @@ func OpenOrInitClone() *git.Repository {
 	} else {
 		log.Println("Opened existing repository.")
 	}
+
+	log.Println("Repository path:", repoPath)
 	return repo
 }
 
@@ -68,6 +70,7 @@ func cloneRemoteRepo() (*git.Repository, error) {
 		return nil, fmt.Errorf("error cloning repository: %w", err)
 	}
 
+	log.Println("Cloned repository from remote.")
 	return repo, nil
 }
 
@@ -128,6 +131,8 @@ func CreateLocalCommit(repo *git.Repository, commits []internal.Commit) int {
 			log.Printf("Commit: %v is already imported \n", commit.ID)
 		}
 	}
+	
+	log.Printf("Total commits created: %d\n", totalCommits)
 	return totalCommits
 }
 
@@ -155,6 +160,7 @@ func getAllExistingCommitSHAs(repo *git.Repository) (map[string]bool, error) {
 		return nil, fmt.Errorf("failed to iterate commits: %v", err)
 	}
 
+	log.Printf("Found %d existing commits in the local repository.\n", len(existingCommits))
 	return existingCommits, nil
 }
 
@@ -174,4 +180,6 @@ func PushLocalCommits(repo *git.Repository) {
 			log.Fatalf("Error pushing to Github: %v", err)
 		}
 	}
+
+	log.Println("Pushed local commits to remote.")
 }

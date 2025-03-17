@@ -22,6 +22,8 @@ func GetGitlabUser() (internal.GitLabUser, error) {
 	}
 	req.Header.Set("PRIVATE-TOKEN", os.Getenv("GITLAB_TOKEN"))
 
+	log.Printf("Fetching user from %v", url)
+
 	res, err := client.Do(req)
 	if err != nil {
 		return internal.GitLabUser{}, fmt.Errorf("error making the request: %v", err)
@@ -42,6 +44,7 @@ func GetGitlabUser() (internal.GitLabUser, error) {
 		return internal.GitLabUser{}, fmt.Errorf("error parsing JSON: %v", err)
 	}
 
+	log.Printf("Fetched user: %v", user)
 	return user, nil
 }
 
@@ -127,6 +130,7 @@ func GetProjectCommits(projectId int, userName string) ([]internal.Commit, error
 
 		allCommits = append(allCommits, commits...)
 
+		log.Printf("Fetched %v commits from project no.:%v \n", len(commits), projectId)
 		page++
 	}
 
@@ -144,9 +148,10 @@ func FetchAllCommits(projectIds []int, commiterName string, commitChannel chan [
 
 	for _, projectId := range projectIds {
 		wg.Add(1)
-
+		log.Printf("Fetching commits for project %d", projectId)
 		go func(projId int) {
 			defer wg.Done()
+			log.Printf("Fetching commits for project %d", projId)
 
 			commits, err := GetProjectCommits(projId, commiterName)
 			if err != nil {
@@ -154,13 +159,16 @@ func FetchAllCommits(projectIds []int, commiterName string, commitChannel chan [
 				return
 			}
 			if len(commits) > 0 {
+				log.Printf("Fetched %v commits from project no.:%v \n", len(commits), projId)
 				commitChannel <- commits
 			}
 
 		}(projectId)
 	}
 
+	log.Println("Waiting for all commits to be fetched")
 	wg.Wait()
+	log.Println("All commits fetched")
 	close(commitChannel)
-
+	log.Println("Channel closed")
 }

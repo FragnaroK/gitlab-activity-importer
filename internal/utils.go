@@ -27,7 +27,9 @@ func CheckEnvVariables() error {
 
 	var missingVars []string
 	for _, envVar := range requiredEnvVars {
+		log.Printf("Checking for environment variable: %s", envVar)
 		if os.Getenv(envVar) == "" {
+			log.Printf("Missing environment variable: %s", envVar)
 			missingVars = append(missingVars, envVar)
 		}
 	}
@@ -44,5 +46,7 @@ func GetHomeDirectory() string {
 	if err != nil {
 		log.Fatal("Unable to get the user home directory:", err)
 	}
+
+	log.Println("Home directory:", homeDir)
 	return homeDir
 }
